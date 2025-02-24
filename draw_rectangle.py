@@ -5,11 +5,8 @@ import numpy as np
 
 def draw_rectangle(image, corners):
     """指定された4点を結ぶ赤い矩形を画像に描画"""
-    # 座標を (x, y) のタプル形式に変換
     pts = np.array(corners, dtype=np.int32).reshape((-1, 1, 2))
-
-    # 赤色で枠線を描画
-    cv2.polylines(image, [pts], isClosed=True, color=(0, 0, 255), thickness=2)
+    cv2.polylines(image, [pts], isClosed=True, color=(0, 0, 255), thickness=3)  # 赤枠
 
     return image
 
