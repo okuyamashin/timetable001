@@ -1,0 +1,7 @@
+
+# 機密情報を含むファイルを無視
+*.env
+config.json
+secrets/
+logs/
+
