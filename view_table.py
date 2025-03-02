@@ -43,6 +43,8 @@ def view_table():
                 border-collapse: collapse;
                 /*width: 100%;*/
                 text-align: center;
+                float:left;
+                margin-right:10px;
             }
             td {
                 border: 1px solid red;
@@ -51,6 +53,20 @@ def view_table():
                 background-size: contain;
                 background-position: center;
                 font-size:xx-small;
+                overflow:hidden;
+            }
+            .type_empty {font-size:large;font-weight:bold;color:#555;}
+            .type_text {font-size:large;font-weight:bold;color:blue;}
+            .type_date_only {font-size:large;font-weight:bold;color:green;}
+            .num_contours {
+                color:purple;
+                font-weight:bold;
+                font-size:large;
+            }
+            .contour_ratio {
+                color:orange;
+                font-wight:bold;
+                font-size:large;
             }
         </style>
         <script>
@@ -62,8 +78,17 @@ def view_table():
                             let id = "cell_" + cell.row + "_" + cell.column;
                             let td = document.getElementById(id);
                             if (td) {
-                                td.innerHTML = cell.filename;
+                                td.innerHTML = cell.filename + '<br/><span class="type_'+cell.type+'">' + cell.type + "</span>"
+                                + '<br/><span class="contour_ratio">' + cell.contour_ratio.toFixed(2) + '</span>'
+                                + '<br/><span class="num_contours">' + cell.num_contours + '</span>'
+                                ;
                                 td.style.backgroundImage = "url('/opencv/{{ base_name }}/" + cell.filename + "')";
+                            }
+                            let gid = "gray_" + + cell.row + "_" + cell.column;
+                            let gtd = document.getElementById(gid);
+                            if (gtd) {
+                                gtd.innerHTML = cell.filename + '<br/><span class="type_'+cell.type+'">' + cell.type + "</span>";
+                                gtd.style.backgroundImage = "url('/opencv/{{ base_name }}/gray/" + cell.gray_filename + "')";
                             }
                         });
                     })
@@ -78,6 +103,16 @@ def view_table():
                 <tr>
                     {% for c in range(cols) %}
                         <td id="cell_{{ r }}_{{ c }}"></td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </table>
+
+        <table>
+            {% for r in range(rows) %}
+                <tr>
+                    {% for c in range(cols) %}
+                        <td id="gray_{{ r }}_{{ c }}"></td>
                     {% endfor %}
                 </tr>
             {% endfor %}
