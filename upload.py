@@ -3,6 +3,7 @@ import hashlib
 from flask import Flask, request, render_template_string
 from files import files_bp  # ← ここで files.py をインポート
 from detect_table import detect_table
+from draw_rectangle import draw_rectangle
 
 app = Flask(__name__)
 
@@ -76,6 +77,39 @@ def detect_table_api():
     try:
         coords = detect_table(filepath)
         return {"coordinates": coords}
+    except Exception as e:
+        return {"error": str(e)}, 400
+
+@app.route("/python/draw_rectangle", methods=["POST"])
+def draw_rectangle_api():
+    if "file" not in request.files:
+        return {"error": "No file uploaded"}, 400
+
+    file = request.files["file"]
+    if file.filename == "":
+        return {"error": "No selected file"}, 400
+
+    file_ext = os.path.splitext(file.filename)[1].lower()
+    if file_ext not in {".png", ".jpg", ".jpeg"}:
+        return {"error": "Invalid file type"}, 400
+
+    # 画像を保存
+    filepath = os.path.join(UPLOAD_FOLDER, file.filename)
+    file.save(filepath)
+
+    try:
+        # 矩形を検出
+        coords = detect_table(filepath)
+
+        # 赤い矩形を描画
+        output_filepath = os.path.join(UPLOAD_FOLDER, f"rect_{file.filename}")
+        draw_rectangle(filepath, output_filepath, coords)
+
+        return {
+            "original_image": f"/opencv/{file.filename}",
+            "rect_image": f"/opencv/rect_{file.filename}",
+            "coordinates": coords
+        }
     except Exception as e:
         return {"error": str(e)}, 400
 
