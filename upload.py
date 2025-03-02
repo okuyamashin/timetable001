@@ -1,13 +1,13 @@
 import os
 import hashlib
 from flask import Flask, request, render_template_string
+from files import files_bp  # ← ここで files.py をインポート
 
 app = Flask(__name__)
 
 UPLOAD_FOLDER = "/var/www/html/opencv"
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "mp4", "avi", "mov", "txt", "pdf"}
 
-# 必要ならディレクトリを作成
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def allowed_file(filename):
@@ -52,6 +52,9 @@ def upload_file():
         <input type="submit" value="Upload">
     </form>
     '''
+
+# files.py のルートを Flask アプリに登録
+app.register_blueprint(files_bp)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
