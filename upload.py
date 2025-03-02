@@ -5,6 +5,7 @@ from files import files_bp  # ← ここで files.py をインポート
 from detect_table import detect_table
 from draw_rectangle import draw_rectangle
 from split_table import split_table
+from view_table import view_table_bp
 
 app = Flask(__name__)
 
@@ -146,68 +147,9 @@ def split_table_api():
     except Exception as e:
         return {"error": str(e)}, 400
 
-@app.route("/python/view_table", methods=["GET"])
-def view_table():
-    base_name = request.args.get("file")  # 例: "001"
-    if not base_name:
-        return "Error: No file specified", 400
+#表示
+app.register_blueprint(view_table_bp)
 
-    directory = os.path.join("/var/www/html/opencv", base_name)
-    if not os.path.exists(directory):
-        return "Error: Directory not found", 404
-
-    # セル画像を取得
-    files = sorted(os.listdir(directory))
-    cells = []
-    rows, cols = 6, 7  # 既定の行数と列数（必要に応じて変更）
-
-    for r in range(rows):
-        row_cells = []
-        for c in range(cols):
-            filename = f"{r}_{c}.jpeg"
-            if filename in files:
-                row_cells.append(f"/opencv/{base_name}/{filename}")
-            else:
-                row_cells.append("")
-        cells.append(row_cells)
-
-    # HTML をレンダリング
-    html_template = """
-    <!DOCTYPE html>
-    <html lang="ja">
-    <head>
-        <meta charset="UTF-8">
-        <title>Table View</title>
-        <style>
-            table {
-                border-collapse: collapse;
-                width: 100%;
-                text-align: center;
-            }
-            td {
-                border: 1px solid black;
-                width: 100px;
-                height: 100px;
-                background-size: cover;
-                background-position: center;
-            }
-        </style>
-    </head>
-    <body>
-        <h2>Table: {{ base_name }}</h2>
-        <table>
-            {% for row in cells %}
-                <tr>
-                    {% for cell in row %}
-                        <td style="background-image: url('{{ cell }}');"></td>
-                    {% endfor %}
-                </tr>
-            {% endfor %}
-        </table>
-    </body>
-    </html>
-    """
-    return render_template_string(html_template, base_name=base_name, cells=cells)
 
 
 if __name__ == "__main__":
