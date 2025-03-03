@@ -46,12 +46,18 @@ def view_table():
                 float:left;
                 margin-right:10px;
             }
-            td {
+            .header_row {
+                height:50px;
+                background-size: contain;
+                background-position: center;
+            }
+            .td {
                 border: 1px solid red;
                 width: 200px;
                 height: 200px;
-                background-size: contain;
+                background-size: cover;
                 background-position: center;
+                background-repeat:no-repeat;
                 font-size:xx-small;
                 overflow:hidden;
             }
@@ -71,7 +77,7 @@ def view_table():
         </style>
         <script>
             document.addEventListener("DOMContentLoaded", function() {
-                fetch("/opencv/{{ base_name }}/cells.json")
+                fetch("../opencv/{{ base_name }}/cells.json")
                     .then(response => response.json())
                     .then(data => {
                         data.forEach(cell => {
@@ -80,9 +86,11 @@ def view_table():
                             if (td) {
                                 td.innerHTML = cell.filename + '<br/><span class="type_'+cell.type+'">' + cell.type + "</span>"
                                 ;
-                                td.style.backgroundImage = "url('/opencv/{{ base_name }}/" + cell.filename + "')";
+                                td.style.backgroundImage = "url('../opencv/{{ base_name }}/" + cell.filename + "')";
                             }
                         });
+                        let htd = document.getElementById('header_row');
+                        htd.style.backgroundImage = "url('../opencv/{{base_name}}/header.jpeg')"; 
                     })
                     .catch(error => console.error("Error loading JSON:", error));
             });
@@ -91,10 +99,14 @@ def view_table():
     <body>
         <h2>Table: {{ base_name }}</h2>
         <table>
+            <tr>
+                <td colspan="5" id="header_row" class="header_row">
+                </td>
+            </tr>
             {% for r in range(rows) %}
                 <tr>
                     {% for c in range(cols) %}
-                        <td id="cell_{{ r }}_{{ c }}"></td>
+                        <td class="td" id="cell_{{ r }}_{{ c }}"></td>
                     {% endfor %}
                 </tr>
             {% endfor %}

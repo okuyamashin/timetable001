@@ -44,8 +44,8 @@ def list_files():
             <div class="img_div">
                 <p class="img_name">{{ file }}</p>
  
-                <a href="/python/view_table?file={{ file.split('.')[0] }}">
-                    <img class="img" src="/opencv/{{ file }}" alt="{{ file }}">
+                <a href="../python/view_table?file={{ file.split('.')[0] }}">
+                    <img class="img" src="../opencv/{{ file }}" alt="{{ file }}">
                 </a>
             </div>
         {% endfor %}

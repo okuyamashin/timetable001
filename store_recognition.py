@@ -3,6 +3,32 @@ import numpy as np
 import os
 import sys
 
+from collections import defaultdict
+
+def process_matching_results(results):
+    """
+    テンプレートマッチング結果を加工し、各店舗ごとに最大スコアのエントリを取得。
+    
+    :param results: [(filename, score, top_left, bottom_right), ...] のリスト
+    :return: [(store_name, score, top_y_coordinate)]
+    """
+    if not results:
+        return []
+
+    store_best_matches = defaultdict(lambda: (None, float('-inf'), None))
+
+    for filename, score, top_left, bottom_right in results:
+        store_name = os.path.splitext(filename)[0].split("_")[-1]  # 最後の要素が店舗名
+        top_y_coordinate = top_left[1]  # Y座標 (top_left[1])
+
+        # その店舗のスコア最大のエントリを保持
+        if score > store_best_matches[store_name][1]:  # 現在の最大スコアより高ければ更新
+            store_best_matches[store_name] = (store_name, score, top_y_coordinate)
+
+    # 各店舗の最大スコアエントリをリストに変換
+    return list(store_best_matches.values())
+
+
 def preprocess_image(image_path):
     """ 画像をグレースケール変換し、バイナリ化 """
     image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
@@ -60,6 +86,6 @@ if __name__ == "__main__":
 
     results = compare_to_directory(target_image_path, directory_path)
 
-    for filename, score, top_left, bottom_right in results:
-        print(f"{filename}: TM Score={score:.3f}, Location={top_left} -> {bottom_right}")
+    processed_results = process_matching_results(results)
+    print(processed_results)
 
