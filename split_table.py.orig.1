@@ -2,29 +2,26 @@ import cv2
 import numpy as np
 import os
 import json
-import pytesseract
-import difflib
 
-def classify_cell(image, output_dir, r,c):
+
+def classify_cell(cell, output_dir, r,c):
     """
-    セル画像を解析し、text または empty を分類する。
-    
-    :param image: セルの画像（NumPy配列）
-    :return: "text" または "empty"
+    セルの画像を解析し、「空白（empty）」か「文字あり（text）」を判定
     """
-    # 画像の寸法取得
-    height, width = image.shape[:2]
+    # 1. ノイズ除去（デノイズ処理）
+    cell = cv2.medianBlur(cell, 3)  # メディアンフィルタでノイズ除去
+    cell = cv2.fastNlMeansDenoising(cell, None, 30, 7, 21)  # 高度なノイズリダクション
 
-    # 10% 内側の範囲を取得
-    margin_h = int(height * 0.08)
-    margin_w = int(width * 0.17)
-    cropped = image[margin_h:height-margin_h, margin_w:width-margin_w]
+    # 2. グレースケール化（念のため）
+    gray = cv2.cvtColor(cell, cv2.COLOR_BGR2GRAY) if len(cell.shape) == 3 else cell
 
-    # グレースケール変換
-    gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
-
-    # 二値化（閾値 200：薄い文字も検出）
+    # 3. 閾値処理でコントラストを強調
     _, binary = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY_INV)
+
+    # 4. モルフォロジー変換でノイズをさらに除去
+    kernel = np.ones((2,2), np.uint8)
+    binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel)  # 小さなノイズを除去
+    binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel) # 文字の切れを補完
 
     # **追加: グレースケール画像を保存**
     gray_dir = os.path.join(output_dir, "gray")
@@ -33,13 +30,20 @@ def classify_cell(image, output_dir, r,c):
     gray_filepath = os.path.join(gray_dir, gray_filename)
     cv2.imwrite(gray_filepath, binary)
 
-    # 黒ピクセルの割合を計算
-    total_pixels = binary.size
-    black_pixels = np.count_nonzero(binary == 0)
-    black_ratio = black_pixels / total_pixels
+    # 5. 文字の密度を解析
+    contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    # 判定（しきい値 0.1）
-    return "text" if black_ratio <= 0.95 else "empty", black_ratio
+    total_contour_area = sum(cv2.contourArea(cnt) for cnt in contours)
+    cell_area = cell.shape[0] * cell.shape[1]
+    contour_ratio = total_contour_area / cell_area
+    num_contours = len(contours)
+
+    # **しきい値を更新**
+    is_text = contour_ratio >= 0.9 or num_contours >= 10
+    cell_type = "text" if is_text else "empty"
+
+    return cell_type, contour_ratio, num_contours
+
 
 def split_table(image_path, table_coords, rows=7, cols=5):
     """
@@ -93,7 +97,7 @@ def split_table(image_path, table_coords, rows=7, cols=5):
             cell_paths.append(cell_filepath)
 
             # セルの種類を判定
-            cell_type, black_ratio = classify_cell(cell_resized, output_dir, r, c) 
+            cell_type, contour_ratio, num_contours = classify_cell(cell_resized, output_dir, r, c) 
 
             gray_filename = f"{r}_{c}_gray.jpeg"
 
@@ -102,9 +106,10 @@ def split_table(image_path, table_coords, rows=7, cols=5):
                 "row": r,
                 "column": c,
                 "filename": cell_filename,
-                "gray_filename": gray_filename,
+                "gray_filename": gray_filename,  # 追加: グレースケール画像名
                 "type": cell_type,
-                "black_ratio": black_ratio
+                "contour_ratio": contour_ratio,  # **追加**
+                "num_contours": num_contours  # **追加**
             })
 
     # JSONファイルに保存

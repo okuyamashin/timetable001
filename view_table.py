@@ -48,8 +48,8 @@ def view_table():
             }
             td {
                 border: 1px solid red;
-                width: 100px;
-                height: 100px;
+                width: 200px;
+                height: 200px;
                 background-size: contain;
                 background-position: center;
                 font-size:xx-small;
@@ -79,16 +79,8 @@ def view_table():
                             let td = document.getElementById(id);
                             if (td) {
                                 td.innerHTML = cell.filename + '<br/><span class="type_'+cell.type+'">' + cell.type + "</span>"
-                                + '<br/><span class="contour_ratio">' + cell.contour_ratio.toFixed(2) + '</span>'
-                                + '<br/><span class="num_contours">' + cell.num_contours + '</span>'
                                 ;
                                 td.style.backgroundImage = "url('/opencv/{{ base_name }}/" + cell.filename + "')";
-                            }
-                            let gid = "gray_" + + cell.row + "_" + cell.column;
-                            let gtd = document.getElementById(gid);
-                            if (gtd) {
-                                gtd.innerHTML = cell.filename + '<br/><span class="type_'+cell.type+'">' + cell.type + "</span>";
-                                gtd.style.backgroundImage = "url('/opencv/{{ base_name }}/gray/" + cell.gray_filename + "')";
                             }
                         });
                     })
@@ -103,16 +95,6 @@ def view_table():
                 <tr>
                     {% for c in range(cols) %}
                         <td id="cell_{{ r }}_{{ c }}"></td>
-                    {% endfor %}
-                </tr>
-            {% endfor %}
-        </table>
-
-        <table>
-            {% for r in range(rows) %}
-                <tr>
-                    {% for c in range(cols) %}
-                        <td id="gray_{{ r }}_{{ c }}"></td>
                     {% endfor %}
                 </tr>
             {% endfor %}
