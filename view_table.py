@@ -24,12 +24,6 @@ def view_table():
 
     # 5列7行のテーブルを作成
     rows, cols = 7, 5  # 修正：7行5列に固定
-    cells = [["" for _ in range(cols)] for _ in range(rows)]
-
-    for cell in cells_data:
-        r, c = cell["row"], cell["column"]
-        if 0 <= r < rows and 0 <= c < cols:  # 範囲内であることを確認
-            cells[r][c] = cell["filename"]
 
     # HTML をレンダリング
     html_template = """
@@ -74,19 +68,34 @@ def view_table():
                 font-wight:bold;
                 font-size:large;
             }
+            .store {
+                font-weight:bold;
+                color:red;
+                font-size:large;
+            }
+            .store_score {
+                font-weight:bold;
+                color:red;
+                font-size:large;
+            }
         </style>
         <script>
             document.addEventListener("DOMContentLoaded", function() {
                 fetch("../opencv/{{ base_name }}/cells.json")
                     .then(response => response.json())
                     .then(data => {
-                        data.forEach(cell => {
+                        data.cells.forEach(cell => {
                             let id = "cell_" + cell.row + "_" + cell.column;
                             let td = document.getElementById(id);
                             if (td) {
                                 td.innerHTML = cell.filename + '<br/><span class="type_'+cell.type+'">' + cell.type + "</span>"
                                 ;
                                 td.style.backgroundImage = "url('../opencv/{{ base_name }}/" + cell.filename + "')";
+
+                                if(cell.store_match.length > 0) {
+                                    let sm = cell.store_match[0];
+                                    td.innerHTML += '<br/><span class="store">' + sm[0] + '</span>' + '<br/><span class="store_score">' + sm[1].toFixed(2) + '</span>';
+                                }
                             }
                         });
                         let htd = document.getElementById('header_row');

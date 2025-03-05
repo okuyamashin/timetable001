@@ -1,5 +1,6 @@
 import os
 import hashlib
+import base64
 from flask import Flask, request, render_template_string
 from files import files_bp  # ← ここで files.py をインポート
 from detect_table import detect_table
@@ -10,7 +11,7 @@ from view_table import view_table_bp
 app = Flask(__name__)
 
 UPLOAD_FOLDER = "/var/www/html/opencv"
-ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "mp4", "avi", "mov", "txt", "pdf"}
+ALLOWED_EXTENSIONS = {"jpg", "jpeg"}
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -20,32 +21,40 @@ def allowed_file(filename):
 @app.route("/python/", methods=["GET", "POST"])
 def upload_file():
     if request.method == "POST":
-        if "file" not in request.files:
+        if "file" in request.files:
+            file = request.files["file"]
+            if file.filename == "":
+                return "No selected file", 400
+            if file and allowed_file(file.filename):
+                file_data = file.read()
+            else:
+               return "jpeg only", 400 
+        elif "image_base64" in request.json:
+            try:
+                file_data = base64.b64decode(request.json["image_base64"])
+            except Exception as e:
+                return f"Invalid base64 data: {str(e)}", 400
+        else:
             return "No file part", 400
-        file = request.files["file"]
-        if file.filename == "":
-            return "No selected file", 400
-        if file and allowed_file(file.filename):
-            file_data = file.read()
-            file_hash = hashlib.md5(file_data).hexdigest()
-            file_ext = os.path.splitext(file.filename)[1].lower()
-            new_filename = f"{file_hash}{file_ext}"
-            filepath = os.path.join(UPLOAD_FOLDER, new_filename)
+        
+        file_hash = hashlib.md5(file_data).hexdigest()
+        new_filename = f"{file_hash}.jpeg"
+        filepath = os.path.join(UPLOAD_FOLDER, new_filename)
 
-            with open(filepath, "wb") as f:
-                f.write(file_data)
+        with open(filepath, "wb") as f:
+            f.write(file_data)
 
-            return render_template_string("""
-            <html>
-            <head><meta charset="UTF-8"><title>Upload Success</title></head>
-            <body>
-                <h2>File uploaded successfully!</h2>
-                <p>Original File: {{ filename }}</p>
-                <p>Saved File: {{ new_filename }}</p>
-                <a href="/opencv/{{ new_filename }}" target="_blank">View File</a>
-            </body>
-            </html>
-            """, filename=file.filename, new_filename=new_filename)
+        return render_template_string("""
+        <html>
+        <head><meta charset="UTF-8"><title>Upload Success</title></head>
+        <body>
+            <h2>File uploaded successfully!</h2>
+            <p>Original File: {{ filename }}</p>
+            <p>Saved File: {{ new_filename }}</p>
+            <a href="/opencv/{{ new_filename }}" target="_blank">View File</a>
+        </body>
+        </html>
+        """, filename=file.filename, new_filename=new_filename)
 
     return '''
     <!doctype html>
@@ -117,6 +126,30 @@ def draw_rectangle_api():
 
 @app.route("/python/split_table", methods=["POST"])
 def split_table_api():
+    if "file" in request.files:
+        file = request.files["file"]
+        if file.filename == "":
+            return "No selected file", 400
+        if file and allowed_file(file.filename):
+            file_data = file.read()
+        else:
+            return "jpeg only", 400 
+    elif "image_base64" in request.json:
+        try:
+            file_data = base64.b64decode(request.json["image_base64"])
+        except Exception as e:
+            return f"Invalid base64 data: {str(e)}", 400
+    else:
+            return "No file part", 400
+        
+    file_hash = hashlib.md5(file_data).hexdigest()
+    filename = f"{file_hash}.jpeg"
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+
+    with open(filepath, "wb") as f:
+        f.write(file_data)
+
+    """
     if "file" not in request.files:
         return {"error": "No file uploaded"}, 400
 
@@ -130,18 +163,20 @@ def split_table_api():
 
     filepath = os.path.join(UPLOAD_FOLDER, file.filename)
     file.save(filepath)
+    """
 
     try:
         # 表の外枠を取得
         table_coords = detect_table(filepath)
 
-        # セル分割
-        cell_paths = split_table(filepath, table_coords)
+        # セル分割       
+        cell_paths = split_table(filepath, table_coords, file_hash)
 
         # 保存されたファイルのパスを返す
-        base_name = os.path.splitext(file.filename)[0]
+        base_name = os.path.splitext(filename)[0]
         return {
             "directory": f"/opencv/{base_name}/",
+            "md5": f"{file_hash}",
             "cells": [f"/opencv/{base_name}/{os.path.basename(cell)}" for cell in cell_paths]
         }
     except Exception as e:
